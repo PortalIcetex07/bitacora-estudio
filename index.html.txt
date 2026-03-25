@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="manifest" href="manifest.json"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#0f0f10"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Bitácora"/>
+<title>Bitácora de Estudio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Courier+Prime&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0f0f10;color:#e8e4d9;font-family:'Georgia',serif;min-height:100vh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+.app{max-width:600px;margin:0 auto;padding:1.5rem 1rem 5rem;}
+h1{font-family:'Playfair Display',serif;font-size:1.8rem;color:#e8c547;text-align:center;letter-spacing:1px;}
+.subtitle{text-align:center;font-size:.7rem;color:#666;letter-spacing:3px;text-transform:uppercase;margin-bottom:2rem;margin-top:4px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem;}
+.card{background:#1a1a1c;border-radius:8px;padding:.8rem 1rem;display:flex;align-items:center;gap:.6rem;border:1px solid #2a2a2c;transition:border-color .3s;}
+.card.active{border-color:var(--c);}
+.sym{font-size:1.3rem;color:var(--c);width:26px;text-align:center;}
+.card-label{font-size:.65rem;color:#888;text-transform:uppercase;letter-spacing:1px;}
+.card-hours{font-family:'Courier Prime',monospace;font-size:1.2rem;color:#444;}
+.card.active .card-hours{color:var(--c);}
+.total-bar{background:#1a1a1c;border:1px solid #e8c54733;border-radius:8px;padding:.7rem 1.2rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+.total-label{font-size:.7rem;color:#888;letter-spacing:2px;text-transform:uppercase;}
+.total-val{font-family:'Courier Prime',monospace;font-size:1.4rem;color:#e8c547;}
+.tabs{display:flex;border-bottom:1px solid #2a2a2c;margin-bottom:1.25rem;}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:#666;padding:.5rem 1.2rem;font-size:.82rem;letter-spacing:1px;cursor:pointer;font-family:'Georgia',serif;margin-bottom:-1px;transition:all .2s;}
+.tab.on{border-bottom-color:#e8c547;color:#e8c547;}
+.panel{background:#1a1a1c;border:1px solid #2a2a2c;border-radius:10px;padding:1.25rem;}
+.field-label{font-size:.65rem;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:.4rem;}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem;}
+.chip{background:#111;border-radius:20px;padding:.3rem .8rem;font-size:.75rem;cursor:pointer;transition:all .15s;border:1px solid transparent;}
+.chip.sel{font-weight:700;}
+input[type=number],input[type=text]{width:100%;background:#111;border:1px solid #333;border-radius:6px;padding:.6rem .9rem;color:#e8e4d9;font-size:1rem;font-family:'Courier Prime',monospace;outline:none;margin-bottom:1rem;}
+input:focus{border-color:#e8c54766;}
+.btn-add{width:100%;background:#1f1f20;color:#e8c547;border:1px solid #e8c54766;border-radius:8px;padding:.7rem;font-size:.88rem;letter-spacing:1px;cursor:pointer;font-family:'Georgia',serif;transition:all .2s;}
+.btn-add:active{background:#e8c547;color:#0f0f10;}
+.date-group{margin-bottom:1.4rem;}
+.date-head{font-size:.65rem;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:.4rem;}
+.entry{background:#1a1a1c;border-radius:7px;padding:.55rem .9rem;display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem;border:1px solid #22222a;}
+.entry-sym{font-size:1rem;width:20px;text-align:center;}
+.entry-info{flex:1;font-size:.78rem;color:#aaa;}
+.entry-note{font-size:.7rem;color:#555;display:block;}
+.entry-h{font-family:'Courier Prime',monospace;font-size:.9rem;}
+.del{background:none;border:none;color:#444;cursor:pointer;font-size:.8rem;padding:0 .2rem;}
+.empty{text-align:center;color:#444;padding:2.5rem 0;font-style:italic;}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+.pop{animation:pop .35s ease;}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <h1>Bitácora de Estudio</h1>
+  <div class="subtitle">Matemática Pura</div>
+
+  <div class="grid" id="cards"></div>
+  <div class="total-bar">
+    <span class="total-label">Total acumulado</span>
+    <span class="total-val" id="grand">0h</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('log',this)">Registrar</button>
+    <button class="tab" onclick="showTab('history',this)">Historial</button>
+  </div>
+
+  <div id="tab-log">
+    <div class="panel">
+      <div class="field-label">Materia</div>
+      <div class="chips" id="chips"></div>
+      <div class="field-label">Horas estudiadas</div>
+      <input type="number" id="inp-h" min="0.25" max="24" step="0.25" placeholder="ej. 1.5"/>
+      <div class="field-label">Nota (opcional)</div>
+      <input type="text" id="inp-n" placeholder="ej. Series de Taylor, cap. 3…"/>
+      <button class="btn-add" onclick="addEntry()">+ Registrar sesión</button>
+    </div>
+  </div>
+
+  <div id="tab-history" style="display:none">
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<script>
+const SUBJECTS=[
+  {id:'calculo',label:'Cálculo Integral',color:'#e8c547',sym:'∫'},
+  {id:'topologia',label:'Topología',color:'#7eb8f7',sym:'𝒯'},
+  {id:'numeros',label:'Teoría de Números',color:'#f7a07e',sym:'ℕ'},
+  {id:'algebra',label:'Álgebra Lineal',color:'#9de89a',sym:'⊗'},
+];
+const KEY='math-log-v1';
+let sel=SUBJECTS[0].id;
+let entries=[];
+try{entries=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){}
+
+function save(){localStorage.setItem(KEY,JSON.stringify(entries));}
+
+function fmt(h){
+  const hh=Math.floor(h),mm=Math.round((h-hh)*60);
+  return mm===0?`${hh}h`:`${hh}h ${mm}m`;
+}
+function today(){return new Date().toISOString().slice(0,10);}
+function fmtDate(iso){const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
+
+function totals(){
+  const t={};
+  SUBJECTS.forEach(s=>t[s.id]=entries.reduce((a,e)=>e.subject===s.id?a+e.hours:a,0));
+  return t;
+}
+
+function renderCards(){
+  const t=totals();
+  const grand=Object.values(t).reduce((a,b)=>a+b,0);
+  document.getElementById('grand').textContent=fmt(grand);
+  document.getElementById('cards').innerHTML=SUBJECTS.map(s=>`
+    <div class="card ${t[s.id]>0?'active':''}" style="--c:${s.color}">
+      <span class="sym" style="color:${s.color}">${s.sym}</span>
+      <div>
+        <div class="card-label">${s.label}</div>
+        <div class="card-hours">${fmt(t[s.id])}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderChips(){
+  document.getElementById('chips').innerHTML=SUBJECTS.map(s=>`
+    <button class="chip${sel===s.id?' sel':''}"
+      style="color:${s.color};border-color:${s.color}55;${sel===s.id?`background:${s.color};color:#0f0f10;`:''}  "
+      onclick="setSel('${s.id}',this)">
+      ${s.sym} ${s.label}
+    </button>`).join('');
+}
+
+function setSel(id){sel=id;renderChips();}
+
+function addEntry(){
+  const h=parseFloat(document.getElementById('inp-h').value);
+  if(!h||h<=0||h>24)return;
+  const n=document.getElementById('inp-n').value.trim();
+  entries.unshift({id:Date.now(),date:today(),subject:sel,hours:h,note:n});
+  save();
+  document.getElementById('inp-h').value='';
+  document.getElementById('inp-n').value='';
+  renderCards();
+  renderHistory();
+  // flash card
+  const cards=document.querySelectorAll('.card');
+  const idx=SUBJECTS.findIndex(s=>s.id===sel);
+  if(cards[idx]){cards[idx].classList.add('pop');setTimeout(()=>cards[idx].classList.remove('pop'),400);}
+}
+
+function delEntry(id){
+  entries=entries.filter(e=>e.id!==id);
+  save();renderCards();renderHistory();
+}
+
+function renderHistory(){
+  const grouped={};
+  entries.forEach(e=>{if(!grouped[e.date])grouped[e.date]=[];grouped[e.date].push(e);});
+  const dates=Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+  const el=document.getElementById('history-list');
+  if(!dates.length){el.innerHTML='<div class="empty">Sin registros aún</div>';return;}
+  el.innerHTML=dates.map(date=>{
+    const dayTotal=grouped[date].reduce((s,e)=>s+e.hours,0);
+    const rows=grouped[date].map(e=>{
+      const s=SUBJECTS.find(x=>x.id===e.subject);
+      return`<div class="entry" style="border-color:${s.color}22">
+        <span class="entry-sym" style="color:${s.color}">${s.sym}</span>
+        <div class="entry-info">${s.label}${e.note?`<span class="entry-note">${e.note}</span>`:''}
+        </div>
+        <span class="entry-h" style="color:${s.color}">${fmt(e.hours)}</span>
+        <button class="del" onclick="delEntry(${e.id})">✕</button>
+      </div>`;
+    }).join('');
+    return`<div class="date-group">
+      <div class="date-head">${fmtDate(date)} — ${fmt(dayTotal)}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+function showTab(id,btn){
+  document.getElementById('tab-log').style.display=id==='log'?'':'none';
+  document.getElementById('tab-history').style.display=id==='history'?'':'none';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// Enter key
+document.addEventListener('keydown',e=>{if(e.key==='Enter')addEntry();});
+
+renderCards();
+renderChips();
+renderHistory();
+</script>
+<script>
+if ("serviceWorker" in navigator){
+
+navigator.serviceWorker.register("service-worker.js").then ( () => console.log("Service Worker registrado"):;
+}
+</script>
+</body>
+</html>
